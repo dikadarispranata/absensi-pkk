@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 use App\Models\Absensi;
+use App\Models\AttendanceSession;
 use App\Models\User;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Str;
 
 class AbsensiController extends Controller
 {
@@ -27,7 +29,7 @@ class AbsensiController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        if ($request->filled('keterangan')){
+        if ($request->filled('keterangan')) {
             $query->where('keterangan', $request->keterangan);
         }
 
@@ -92,49 +94,99 @@ class AbsensiController extends Controller
     }
     public function qr()
     {
-        return view('absen.qr');
+        $session = AttendanceSession::create([
+            'token' => Str::uuid(),
+            'expired_at' => now()->addMinutes(5),
+            'is_used' => false,
+        ]);
+
+        return view('absen.qr', compact('session'));
     }
+
+
+
     public function scanConfirm(Request $request)
     {
-        $code = $request->query('code');
+
+        $request->validate([
+            'token' => 'required|uuid'
+        ]);
+
         $user = Auth::user();
         $today = now()->toDateString();
 
-        if (!$code) {
-            return redirect()->route('absen.scan')->with('error', 'QR tidak valid!');
-        }
+        DB::beginTransaction();
 
-        $absensi = Absensi::where('users_id', $user->id)
-            ->whereDate('tanggal', $today)
-            ->first();
+        try {
 
-        if ($absensi) {
-            if (empty($absensi->jam_pulang) || $absensi->jam_pulang == '00:00:00') {
-                $absensi->update([
-                    'jam_pulang' => now()->toTimeString(),
-                    'status' => 'hadir',
-                ]);
-                return redirect()->route('absensis.index')->with('success', 'Jam pulang berhasil direkam.');
-            } else {
-                return redirect()->route('absensis.index')->with('info', 'Anda sudah absen hari ini.');
+            $session = AttendanceSession::where('token', $request->token)
+                ->where('expired_at', '>=', now())
+                ->where('is_used', false)
+                ->lockForUpdate()
+                ->first();
+            if (!$session) {
+                DB::rollBack();
+                return redirect()->route('absensis.scan')
+                    ->with('error', 'QR tidak valid atau kadaluarsa.');
             }
+
+
+            $absensi = Absensi::where('users_id', $user->id)
+                ->whereDate('tanggal', $today)
+                ->first();
+
+            if ($absensi) {
+
+                if (is_null($absensi->jam_pulang)) {
+
+                    $absensi->update([
+                        'jam_pulang' => now()->toTimeString(),
+                    ]);
+
+                    $session->update(['is_used' => true]);
+
+                    DB::commit();
+
+                    return redirect()->route('absensis.index')
+                        ->with('success', 'Jam pulang berhasil direkam.');
+                }
+
+                DB::rollBack();
+
+                return redirect()->route('absensis.index')
+                    ->with('info', 'Anda sudah absen hari ini.');
+            }
+
+            $bataswaktu = now()->setTime(8, 0, 0);
+
+            $keterangan = now()->greaterThan($bataswaktu)
+                ? 'Terlambat'
+                : 'Tepat waktu';
+
+            Absensi::create([
+                'users_id' => $user->id,
+                'tanggal' => $today,
+                'jam_masuk' => now()->toTimeString(),
+                'jam_pulang' => null,
+                'status' => 'hadir',
+                'keterangan' => $keterangan,
+            ]);
+
+            $session->update(['is_used' => true]);
+
+            DB::commit();
+
+            return redirect()->route('absensis.index')
+                ->with('success', 'Absensi berhasil dicatat!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('absensis.scan')
+                ->with('error', 'Terjadi kesalahan sistem.');
         }
-
-        $bataswaktu = now()->setTime(8, 0, 0);
-        $jamsekarang = now();
-        $keterangan = $jamsekarang->greaterThan($bataswaktu) ? 'Terlambat' : 'Tepat waktu';
-
-        Absensi::create([
-            'users_id' => Auth::user()->id,
-            'tanggal' => now()->toDateString(),
-            'jam_masuk' => now()->toTimeString(),
-            'jam_pulang' => '00:00:00',
-            'status' => 'hadir',
-            'keterangan' => $keterangan,
-        ]);
-
-        return redirect()->route('absensis.index')->with('success', 'Absensi berhasil dicatat!');
     }
+
+
     public function rekap(Request $request)
     {
         $tanggal_mulai = $request->input('tanggal_mulai');

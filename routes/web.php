@@ -52,3 +52,7 @@ Route::get('/laporan/export-excel', [LaporanController::class, 'exportExcel'])->
 Route::get('/laporan/rekap/export', [App\Http\Controllers\LaporanController::class, 'exportRekapExcel'])->name('laporan.rekap.export');
 Route::get('/laporan/rekap/pdf', [LaporanController::class, 'exportRekapPdf'])->name('laporan.rekap.pdf');
 
+Route::get('/absen/confirm', [AbsensiController::class, 'scanConfirm'])->name('absen.confirm')->middleware('auth');
+Route::get('/absensis/scan/confirm', [AbsensiController::class, 'scanConfirm'])
+    ->name('absensis.scanConfirm')
+    ->middleware('auth');

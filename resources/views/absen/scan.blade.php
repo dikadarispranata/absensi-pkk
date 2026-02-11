@@ -1,37 +1,39 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="p-6 text-center">
-        <h2 class="text-xl font-bold mb-4">Scan QR Karyawan</h2>
-        <div id="reader" class="mx-auto border rounded" style="width:300px"></div>
-        <div id="result" class="mt-4 text-sm text-gray-600"></div>
-    </div>
+<div class="p-6 text-center">
+    <h2 class="text-xl font-bold mb-4">Scan QR Karyawan</h2>
 
-    <!-- LIBARY -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <div id="reader" style="width:300px" class="mx-auto"></div>
+    <p id="status" class="mt-4 text-sm text-gray-600"></p>
+</div>
 
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            let scanned = false;
+<script>
+document.addEventListener("DOMContentLoaded", function () {
 
-            function onScanSuccess(decodedText) {
-                if (scanned) return; //cegah scan duplikat
-                scanned = true;
+    let scanned = false;
 
-                // Redirect hanya 1 kali
-                window.location.href = "/absensis/scan/confirm?code=" + encodeURIComponent(decodedText);
+    function onScanSuccess(decodedText) {
 
-                //stop kamera supaya tidak baca ulang
-                html5QrcodeScanner.clear();
-            }
+        if (scanned) return;
+        scanned = true;
 
-            const html5QrcodeScanner = new Html5QrcodeScanner("reader", {
-                fps: 10,
-                qrbox: 250
-            });
+        document.getElementById("status").innerText =
+            "QR terdeteksi, redirect...";
 
-            html5QrcodeScanner.render(onScanSuccess);
-        });
-    </script>
+        // LANGSUNG redirect ke isi QR
+        window.location.href = decodedText;
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: 250 },
+        false
+    );
+
+    html5QrcodeScanner.render(onScanSuccess);
+});
+</script>
 @endsection
