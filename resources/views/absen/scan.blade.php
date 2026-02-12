@@ -171,16 +171,16 @@
                 let html = '';
                 scanHistory.forEach((item, index) => {
                     html += `
-                    <div class="bg-gray-50 rounded-lg p-3 flex items-center justify-between hover:bg-gray-100 transition-colors">
-                        <div class="flex items-center space-x-3 truncate">
-                            <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            <span class="text-sm font-medium text-gray-700 truncate max-w-[150px] sm:max-w-[200px]">${item.text}</span>
+                        <div class="bg-gray-50 rounded-lg p-3 flex items-center justify-between hover:bg-gray-100 transition-colors">
+                            <div class="flex items-center space-x-3 truncate">
+                                <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-700 truncate max-w-[150px] sm:max-w-[200px]">${item.text}</span>
+                            </div>
+                            <span class="text-xs text-gray-500 flex-shrink-0">${item.time}</span>
                         </div>
-                        <span class="text-xs text-gray-500 flex-shrink-0">${item.time}</span>
-                    </div>
-                `;
+                    `;
                 });
 
                 scanHistoryEl.innerHTML = html;
@@ -190,13 +190,8 @@
                 if (scanned) return;
                 scanned = true;
 
-                // Show loading
                 loadingEl.classList.remove('hidden');
-
-                // Add to history
                 addToHistory(decodedText);
-
-                showStatus('✓ QR Code berhasil di-scan! Mengalihkan...', 'success');
 
                 if (!isValidUrl(decodedText)) {
                     showStatus('QR tidak valid', 'error');
@@ -207,9 +202,6 @@
 
                 showStatus('✓ QR Code berhasil di-scan! Mengalihkan...', 'success');
 
-                setTimeout(() => {
-                    window.location.href = decodedText;
-                }, 1500);
                 setTimeout(() => {
                     window.location.href = decodedText;
                 }, 1500);
