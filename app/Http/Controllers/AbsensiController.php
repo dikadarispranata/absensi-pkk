@@ -96,7 +96,7 @@ class AbsensiController extends Controller
     {
         $session = AttendanceSession::create([
             'token' => Str::uuid(),
-            'expired_at' => now()->addMinutes(5),
+            'expired_at' => now()->addSeconds(60),
             'is_used' => false,
         ]);
 
